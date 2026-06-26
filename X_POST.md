@@ -15,8 +15,9 @@ countdown, and a red ⚠️ alert the moment a proof is missed.
 
 Trustless. No wallet needed. Built with the Synapse SDK on calibration.
 
-🔗 [LIVE DEMO LINK]
-📦 [REPO LINK]
+🔗 https://pdp-vault.vercel.app
+📦 https://github.com/BunnyTeddy/pdp-vault
+✅ Demo proof: https://pdp-vault.vercel.app/v/ln4c6flto6ap
 
 Built with AI (Claude Code) for the @FilecoinTLDR Builder Challenge.
 

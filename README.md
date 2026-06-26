@@ -5,8 +5,9 @@
 
 Built for the **FilecoinTLDR Builder Challenge — Cycle 1**.
 
-🌐 **Live demo:** _(add Vercel URL after deploy)_
-📦 **Repo:** _(add GitHub URL)_
+🌐 **Live demo:** <https://pdp-vault.vercel.app>
+📦 **Repo:** <https://github.com/BunnyTeddy/pdp-vault>
+✅ **Production proof sample:** <https://pdp-vault.vercel.app/v/ln4c6flto6ap>
 
 ---
 
