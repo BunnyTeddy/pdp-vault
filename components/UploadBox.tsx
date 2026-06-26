@@ -18,11 +18,13 @@ export default function UploadBox() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const upload = useCallback(async (file: File) => {
     setBusy(true);
     setError(null);
     setResult(null);
+    setCopied(false);
     try {
       const form = new FormData();
       form.append('file', file);
@@ -110,6 +112,10 @@ export default function UploadBox() {
             anyone can verify the proof independently.
           </p>
           <div className="mt-4 w-full max-w-md rounded-xl border border-white/10 bg-black/30 p-3 text-left font-mono text-xs">
+            <div className="truncate" title={result.url}>
+              <span className="text-white/40">verifyURL </span>
+              {result.url}
+            </div>
             <div className="truncate">
               <span className="text-white/40">pieceCID </span>
               {result.pieceCid}
@@ -128,8 +134,19 @@ export default function UploadBox() {
             </Link>
             <button
               type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(result.url);
+                setCopied(true);
+              }}
+              className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/5"
+            >
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setResult(null);
+                setCopied(false);
               }}
               className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/5"
             >

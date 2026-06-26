@@ -54,11 +54,7 @@ export async function uploadFile(
     throw new Error('Upload completed but no storage copy was returned.');
   }
 
-  const provider = await synapse.getProviderInfo(copy.providerId as never).catch(async () => {
-    // getProviderInfo wants an Address, but accepts the provider address we
-    // have on the context. Fall back to the context's provider if needed.
-    return context.getProviderInfo();
-  });
+  const provider = await context.getProviderInfo();
 
   const entry: VaultEntry = {
     id: makeId(),

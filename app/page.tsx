@@ -57,11 +57,24 @@ export default function Home() {
         <section className="mt-16">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Recently proven</h2>
-            <Link href="#" className="text-sm text-brand hover:underline">
+            <Link href="#what-is-pdp" className="text-sm text-brand hover:underline">
               what is PDP?
             </Link>
           </div>
           <RecentVaults />
+        </section>
+
+        {/* PDP explainer */}
+        <section id="what-is-pdp" className="glass mt-16 scroll-mt-8 rounded-2xl p-5">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-white/40">
+            What is PDP?
+          </h2>
+          <p className="text-sm leading-relaxed text-white/60">
+            Provable Data Possession is Filecoin&apos;s on-chain proof that a storage
+            provider still holds the exact bytes for a file. PDP Vault turns that
+            proof into the product: every verify link re-checks live chain state,
+            not a cached badge or a backend promise.
+          </p>
         </section>
 
         <footer className="mt-20 border-t border-white/5 pt-6 text-center text-xs text-white/30">

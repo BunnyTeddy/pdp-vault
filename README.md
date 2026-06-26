@@ -50,11 +50,11 @@ Browser ──► Next.js (Vercel)
               │                          └── pays via USDFC (Filecoin Pay)
               │
               ├── GET /v/[id] ─► reads live pieceStatus() from RPC (trustless)
-              └── Vercel KV / local JSON — vault metadata (pieceCID, dataSetId, providerId)
+              └── Upstash Redis / local JSON — vault metadata (pieceCID, dataSetId, providerId)
 ```
 
 - **Relayer model:** one server-held funded wallet pays for all uploads, so visitors don't need a wallet or testnet FIL to try it. Reads reuse the same on-chain account (required so the `eth_call` `from` resolves to a funded actor — a Filecoin quirk).
-- **Persistence:** [Vercel KV](https://vercel.com/docs/storage/vercel-kv) in production; falls back to a local JSON file in dev. Either way we only store the *metadata needed to re-verify* — never the file bytes (those live on Filecoin).
+- **Persistence:** Upstash Redis on Vercel in production; falls back to a local JSON file in dev. Either way we only store the *metadata needed to re-verify* — never the file bytes (those live on Filecoin).
 
 ---
 
@@ -82,7 +82,22 @@ npm run dev
 If the faucet is rate-limited, the script tells you — wait ~40s and re-run (it's idempotent; the key is saved in `.env`). You can also claim manually at <https://forest-explorer.chainsafe.dev/>.
 
 ### Env
-See [`.env.example`](./.env.example). The only required var is `RELAYER_PRIVATE_KEY`, which `setup:relayer` creates for you.
+See [`.env.example`](./.env.example).
+
+- `RELAYER_PRIVATE_KEY` is required for uploads; `setup:relayer` creates it locally.
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN` are required on Vercel so public verify links survive serverless instances and redeploys. Install the Upstash Redis integration from the Vercel Marketplace; it provides these KV-compatible env vars.
+- `FILECOIN_RPC_URL` is optional; use it only if the default calibration RPC is rate-limited.
+
+### Deploy checklist
+```bash
+npm run check
+vercel env add RELAYER_PRIVATE_KEY production
+vercel install upstash
+vercel env pull .env.vercel.local
+vercel --prod
+```
+
+Never commit `.env`; it contains the relayer private key.
 
 ---
 
@@ -102,7 +117,7 @@ components/
 lib/
   synapse.ts               # Synapse SDK factory (relayer client)
   vault.ts                 # uploadFile() + getProofStatus()
-  db.ts                    # KV / local-JSON persistence
+  db.ts                    # Upstash Redis / local-JSON persistence
   types.ts                 # VaultEntry, ProofStatus
   links.ts                 # Beryx explorer links + formatters
 scripts/
@@ -115,7 +130,7 @@ scripts/
 - **[Next.js 14](https://nextjs.org/)** (App Router, server components) + TypeScript + Tailwind
 - **[`@filoz/synapse-sdk`](https://github.com/FilOzone/synapse-sdk)** `1.0.1` — the official Filecoin Onchain Cloud SDK
 - **[viem](https://viem.sh)** — Ethereum/Filecoin client
-- **[Vercel KV](https://vercel.com/docs/storage/vercel-kv)** — serverless persistence
+- **Upstash Redis on Vercel** — serverless persistence using KV-compatible REST env vars
 
 ---
 

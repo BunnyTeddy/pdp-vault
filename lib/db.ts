@@ -6,7 +6,7 @@ import type { VaultEntry } from './types';
  * Tiny persistence layer for vault entries.
  *
  * Two backends:
- *  - Vercel KV when KV_REST_API_URL + KV_REST_API_TOKEN are set (production).
+ *  - Upstash Redis when KV_REST_API_URL + KV_REST_API_TOKEN are set (production).
  *  - A local JSON file otherwise (dev / any host, zero config).
  *
  * Both expose the same minimal API: save, get, listRecent.
@@ -14,6 +14,7 @@ import type { VaultEntry } from './types';
 
 const USE_KV =
   !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
+const IS_VERCEL = process.env.VERCEL === '1';
 
 const LOCAL_FILE = path.join(process.cwd(), '.vault-store.json');
 const LIST_KEY = 'pdp-vault:entries';
@@ -23,7 +24,7 @@ const entryKey = (id: string) => `pdp-vault:entry:${id}`;
 // KV backend
 // ---------------------------------------------------------------------------
 async function kvSave(entry: VaultEntry): Promise<void> {
-  const { kv } = await import('@vercel/kv');
+  const kv = await getRedis();
   await kv.set(entryKey(entry.id), JSON.stringify(entry));
   // Push id to the front of a capped recent-list (keep last 100).
   await kv.lpush(LIST_KEY, entry.id);
@@ -31,19 +32,36 @@ async function kvSave(entry: VaultEntry): Promise<void> {
 }
 
 async function kvGet(id: string): Promise<VaultEntry | null> {
-  const { kv } = await import('@vercel/kv');
+  const kv = await getRedis();
   const raw = await kv.get<string>(entryKey(id));
-  return raw ? (JSON.parse(raw) as VaultEntry) : null;
+  return parseEntry(raw);
 }
 
 async function kvListRecent(limit: number): Promise<VaultEntry[]> {
-  const { kv } = await import('@vercel/kv');
+  const kv = await getRedis();
   const ids = await kv.lrange<string>(LIST_KEY, 0, limit - 1);
   if (ids.length === 0) return [];
-  const entries = (await kv.mget<VaultEntry[]>(
+  const entries = (await kv.mget<string[]>(
     ...ids.map((id) => entryKey(id)),
-  )) as unknown as (VaultEntry | null)[];
-  return entries.filter((e): e is VaultEntry => e !== null);
+  )) as unknown as (string | VaultEntry | null)[];
+  return entries
+    .map(parseEntry)
+    .filter((e): e is VaultEntry => e !== null);
+}
+
+let redisPromise: Promise<import('@upstash/redis').Redis> | null = null;
+
+async function getRedis(): Promise<import('@upstash/redis').Redis> {
+  if (!redisPromise) {
+    const { Redis } = await import('@upstash/redis');
+    redisPromise = Promise.resolve(
+      new Redis({
+        url: process.env.KV_REST_API_URL ?? '',
+        token: process.env.KV_REST_API_TOKEN ?? '',
+      }),
+    );
+  }
+  return redisPromise;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,20 +96,37 @@ async function localListRecent(limit: number): Promise<VaultEntry[]> {
   return entries.slice(0, limit);
 }
 
+function assertStorageConfigured(): void {
+  if (!USE_KV && IS_VERCEL) {
+    throw new Error(
+      'Upstash Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN for this project.',
+    );
+  }
+}
+
+function parseEntry(raw: string | VaultEntry | null): VaultEntry | null {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  return JSON.parse(raw) as VaultEntry;
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 export async function saveEntry(entry: VaultEntry): Promise<void> {
+  assertStorageConfigured();
   if (USE_KV) await kvSave(entry);
   else await localSave(entry);
 }
 
 export async function getEntry(id: string): Promise<VaultEntry | null> {
+  assertStorageConfigured();
   if (USE_KV) return kvGet(id);
   return localGet(id);
 }
 
 export async function listRecent(limit = 10): Promise<VaultEntry[]> {
+  assertStorageConfigured();
   if (USE_KV) return kvListRecent(limit);
   return localListRecent(limit);
 }

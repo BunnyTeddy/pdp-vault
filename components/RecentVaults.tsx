@@ -31,11 +31,13 @@ export default function RecentVaults() {
         <Link
           key={e.id}
           href={`/v/${e.id}`}
-          className="glass group flex items-center justify-between rounded-xl p-4 transition hover:bg-white/10"
+          className="glass group flex min-w-0 items-center justify-between rounded-xl p-4 transition hover:bg-white/10"
         >
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{e.filename}</p>
-            <p className="truncate font-mono text-xs text-white/40">{e.pieceCid}</p>
+            <p className="truncate font-mono text-xs text-white/40" title={e.pieceCid}>
+              {shortCid(e.pieceCid)}
+            </p>
           </div>
           <span className="ml-3 shrink-0 text-xs text-white/30 transition group-hover:text-brand">
             view →
@@ -44,4 +46,9 @@ export default function RecentVaults() {
       ))}
     </div>
   );
+}
+
+function shortCid(cid: string): string {
+  if (cid.length <= 24) return cid;
+  return `${cid.slice(0, 14)}...${cid.slice(-10)}`;
 }
